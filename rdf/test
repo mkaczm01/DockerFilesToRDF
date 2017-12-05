@@ -1,3 +1,4 @@
 kom: Copy everything else and build
-LABEL: com.example.vendor===ACME Incorporated 
-LABEL: multi.label1===value1 multi.label2===value2 other===value3 
+EXPOSE: 80 PROTOCOL: tcp
+USER: foo_bar
+ENV: PYTHONUNBUFFERED=1

@@ -1,16 +1,19 @@
 %===============================================================================
 % Proedura startowa
-s() :- start().
+% s() :- start("apt-cacher-ng").
+% s() :- start("aspnet-mssql-compose").
+% s() :- start("django").
+% s() :- start("dotnetcore").
+s() :- start("dockeronto").
 
-start() :-
-	read_file_to_codes("./sources/test", FILE_CONTENT, []),
-
-	% headers(HEADERS),
+start(FILE) :-
+	concat_atom(["./sources/", FILE], INPUT_FILE),
+	read_file_to_codes(INPUT_FILE, FILE_CONTENT, []),
+	headers(HEADERS),
 	body(BODY, FILE_CONTENT, []),
-	% footer(FOOTER),
-
-	concat_atom([BODY], OUTPUT),
-	saveFile("./rdf/test", OUTPUT),
+	concat_atom([HEADERS, BODY], OUTPUT),
+	concat_atom(["./rdf/", FILE], OUTPUT_FILE),
+	saveFile(OUTPUT_FILE, OUTPUT),
 	write(OUTPUT), !.
 
 %===============================================================================
@@ -22,24 +25,22 @@ saveFile(FILE_NAME, CONTENT):-
 
 %===============================================================================
 % do debugowania programu
-% ON
 swi_debug(TEXT) :- write('DEBUG:'), writeln(TEXT).
 
 %===============================================================================
 %
+
+headers(HEADER) :- concat_atom(['ex:dockerfileX a do:Dockerfile;\ndo:contains ( ex:insX ex:insX ex:insX ex:insX );\n'], HEADER).
+
 body(BODY) --> new_line_or_space, custom_code(CODE), {concat_atom([CODE], BODY)}.
 
-% custom_code(CODE) --> comment(CODE_1), new_line, custom_code(CODE_2), { concat_atom([CODE_1, "\n", CODE_2], CODE) }.
-
-custom_code(CODE) --> space, docker_instructions(CODE_1), new_line, custom_code(CODE_2), { concat_atom([CODE_1, "\n", CODE_2], CODE) }.
-
+custom_code(CODE) --> space, docker_instructions(CODE_1), new_line, {custom_code(CODE_2), { concat_atom([CODE_1, "\n", CODE_2], CODE) }.
 custom_code(CODE) --> space, docker_instructions(CODE).
-
-custom_code('', _) --> "".
-
+custom_code('') --> "".
 
 %===============================================================================
 %
+
 docker_instructions(INSTRUCTIONS) --> space, docker_instruction(I), new_line, docker_instructions(REST), {concat_atom([I, '\n', REST], INSTRUCTIONS)}.
 docker_instructions(INSTRUCTION) --> space, docker_instruction(INSTRUCTION), new_line.
 
@@ -50,26 +51,42 @@ docker_instruction(INSTRUCTION) --> cmd(INSTRUCTION).
 docker_instruction(INSTRUCTION) --> label(INSTRUCTION).
 docker_instruction(INSTRUCTION) --> expose(INSTRUCTION).
 docker_instruction(INSTRUCTION) --> env(INSTRUCTION).
-
+docker_instruction(INSTRUCTION) --> add(INSTRUCTION).
 docker_instruction(INSTRUCTION) --> volume(INSTRUCTION).
 docker_instruction(INSTRUCTION) --> user(INSTRUCTION).
 docker_instruction(INSTRUCTION) --> workdir(INSTRUCTION).
 docker_instruction(INSTRUCTION) --> stopsignal(INSTRUCTION).
 
 %===============================================================================
-% komentarz
-comment(LINE) --> "#", space, string(COMMENT), new_line, {concat_atom(["kom: ", COMMENT], LINE)}.
+% komentarz - OK
+% comment(LINE) --> "#", space, string(COMMENT), "\n", {concat_atom(["kom: ", COMMENT], LINE)}.
+comment(LINE) --> "#", space, string(COMMENT), "\n", {concat_atom([], LINE)}.
+% comment(LINE) --> "#", "\n", {concat_atom(["kom?: "], LINE)}.
 
 %===============================================================================
 % FROM
-from(LINE) --> "FROM", space, string(IMAGE), if_from_as(AS), new_line, {concat_atom(["FROM: ", IMAGE, AS], LINE)}.
+% FROM <image> [AS <name>] - OK
+% FROM <image>[:<tag>] [AS <name>] - OK
+% FROM <image>[@<digest>] [AS <name>]
 
-if_from_as(STRING) --> space, "AS", space, string(NAME), {concat_atom(['AS: ', NAME], STRING)}.
+from(LINE) --> "FROM", space, variable_name(IMAGE), if_from_tag(TAG), if_from_as(AS), new_line, {concat_atom(["ex:insX fno:executes do:from; do:fromValue <", IMAGE, TAG, ">;", AS], LINE)}.
+
+if_from_as(STRING) --> space, "AS", space, variable_name(NAME), {concat_atom(['AS: ', NAME], STRING)}.
 if_from_as("") --> "".
+
+if_from_tag(STRING) --> ":", if_from_tag_name(TAG), {concat_atom([':', TAG], STRING)}.
+if_from_tag("") --> "".
+
+if_from_tag_name(NAME) --> variable_name(NAME).
+if_from_tag_name(NAME) --> int(NAME).
+
 
 %===============================================================================
 % RUN
-run(LINE) --> "RUN", space, string(COMMAND), new_line, {concat_atom(["RUN: ", COMMAND], LINE)}.
+run(LINE) --> "RUN", space, string(COMMAND), new_line, {concat_atom(["ex:insX fno:executes do:run; do:runCmd \"", COMMAND, "\""], LINE)}.
+
+%
+
 
 % TODO: opracować
 % RUN ["dotnet", "restore"]
@@ -101,22 +118,24 @@ if_qoute_mark("") --> "".
 
 %===============================================================================
 % EXPOSE
-% EXPOSE 80/tcp
+% EXPOSE 80 - OK
+% EXPOSE 80/tcp - OK
 expose(LINE) --> "EXPOSE", space, int(PORT), if_expose_protocol(PROTOCOL), new_line, {concat_atom(["EXPOSE: ", PORT, PROTOCOL], LINE)}.
 
-if_expose_protocol(STRING) --> "/", string(PROTOCOL), {concat_atom(['PROTOCOL: ', PROTOCOL], STRING)}.
+if_expose_protocol(STRING) --> "/", variable_name(PROTOCOL), {concat_atom([' PROTOCOL: ', PROTOCOL], STRING)}.
 if_expose_protocol("") --> "".
 
 %===============================================================================
 % ENV
-% ENV PYTHONUNBUFFERED 1
-% ENV PYTHONUNBUFFERED=1
-env(LINE) --> "ENV", space, chars(KEY), space, "=", space, string(VALUE), new_line, {concat_atom(["ENV: ", KEY, "=", VALUE], LINE)}.
+% ENV PYTHONUNBUFFERED 1 - NOK
+% ENV PYTHONUNBUFFERED=1 - OK
+env(LINE) --> "ENV", space, variable_name(KEY), space, "=", space, string(VALUE), new_line, {concat_atom(["ENV: ", KEY, "=", VALUE], LINE)}.
 % TODO: opracowac przypisanie ze spacja
 
 %===============================================================================
 % ADD
 % TODO: opracować
+add(LINE) --> "ADD", space, string(VALUE), new_line, {concat_atom(["ex:insX fno:executes do:add; do:Instruction \"", VALUE, "\""], LINE)}.
 
 %===============================================================================
 % COPY
@@ -137,12 +156,12 @@ volume(LINE) --> "VOLUME", space, string(DIRECTORY), new_line, {concat_atom(["VO
 % USER
 % USER <user>[:<group>]
 % USER <UID>[:<GID>]
-user(LINE) --> "USER", space, string(USER), new_line, {concat_atom(["USER: ", USER], LINE)}.
+user(LINE) --> "USER", space, variable_name(USER), new_line, {concat_atom(["USER: ", USER], LINE)}.
 % TODO: dodanie grupy?
 
 %===============================================================================
 % WORKDIR
-% WORKDIR /path/to/workdir
+% WORKDIR /path/to/workdir - OK
 workdir(LINE) --> "WORKDIR", space, string(PATH), new_line, {concat_atom(["WORKDIR: ", PATH], LINE)}.
 
 %===============================================================================
@@ -155,6 +174,7 @@ workdir(LINE) --> "WORKDIR", space, string(PATH), new_line, {concat_atom(["WORKD
 
 %===============================================================================
 % STOPSIGNAL
+% STOPSIGNAL signal - OK
 stopsignal(LINE) --> "STOPSIGNAL", space, string(SIGNAL), new_line, {concat_atom(["STOPSIGNAL: ", SIGNAL], LINE)}.
 
 %===============================================================================
@@ -167,24 +187,25 @@ stopsignal(LINE) --> "STOPSIGNAL", space, string(SIGNAL), new_line, {concat_atom
 
 
 
-% ADD
-% COPY
-
-% FROM
-% LABEL
-% STOPSIGNAL
-% USER
-% VOLUME
-% WORKDIR
-% ONBUILD
 
 
 
 
+%===============================================================================
+% Ścieżka do folderu
+% /foo/bar/baz
+% path(STRING) --> "/",
 
+%===============================================================================
+% Nazwa zmiennej
+% foo bar baz
+variable_name(CHARS) --> variable_characters(CHARS).
 
+variable_characters(CHARS) --> variable_available_char(CHAR), variable_characters(REST), {concat_atom([CHAR, REST], CHARS)}.
+variable_characters(CHARS) --> variable_available_char(CHAR), {concat_atom([CHAR], CHARS)}.
 
-
+% Char is a letter (upper- or lowercase) or the underscore (_). These are valid first characters for C and Prolog symbols.
+variable_available_char(LETTER) --> [CHAR], {code_type(CHAR, csymf), atom_codes(LETTER, [CHAR])}.
 
 %===============================================================================
 % SPACJA lub TAB lub NIC

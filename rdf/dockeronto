@@ -1,0 +1,7 @@
+ex:dockerfileX a do:Dockerfile;
+do:contains ( ex:insX ex:insX ex:insX ex:insX );
+
+ex:insX fno:executes do:from; do:fromValue <ubuntu:latest>;
+ex:insX fno:executes do:run; do:runCmd "apt-get update apt-get install -y python python-pip wget"
+ex:insX fno:executes do:run; do:runCmd "pip install Flask"
+ex:insX fno:executes do:add; do:Instruction "hello.py /home/hello.py"
