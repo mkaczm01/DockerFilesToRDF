@@ -1,0 +1,22 @@
+# fooooooo
+FROM microsoft/aspnetcore-build:2.0 AS build-env
+
+FROM ubuntu
+
+RUN pip install -r requirements.txt
+
+CMD /bin/bash ./entrypoint.sh
+
+EXPOSE 8090
+EXPOSE 80/tcp
+
+ENV PYTHONUNBUFFERED=1
+
+VOLUME      ["/var/cache/apt-cacher-ng"]
+VOLUME /var/cache/apt-cacher-ng
+
+USER postgres
+
+WORKDIR /app
+
+STOPSIGNAL signal
