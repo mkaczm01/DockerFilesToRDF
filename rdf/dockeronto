@@ -1,7 +1,13 @@
+@prefix do: <http://linkedcontainers.org/vocab#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
+@prefix ex: <http://www.example.org/#> .
+@base <http://linkedcontainers.org/vocab> .
+
 ex:dockerfileX a do:Dockerfile;
 do:contains ( ex:insX ex:insX ex:insX ex:insX );
 
+# Dockeronto example
 ex:insX fno:executes do:from; do:fromValue <ubuntu:latest>;
-ex:insX fno:executes do:run; do:runCmd "apt-get update apt-get install -y python python-pip wget"
-ex:insX fno:executes do:run; do:runCmd "pip install Flask"
-ex:insX fno:executes do:add; do:Instruction "hello.py /home/hello.py"
+ex:insX fno:executes do:run; do:runCmd "apt-get update apt-get install -y python python-pip wget" .
+ex:insX fno:executes do:run; do:runCmd "pip install Flask" .
+ex:insX fno:executes do:add; do:Instruction "hello.py /home/hello.py" .

@@ -30,7 +30,14 @@ swi_debug(TEXT) :- write('DEBUG:'), writeln(TEXT).
 %===============================================================================
 %
 
-headers(HEADER) :- concat_atom(['ex:dockerfileX a do:Dockerfile;\ndo:contains ( ex:insX ex:insX ex:insX ex:insX );\n'], HEADER).
+headers(HEADER) :- concat_atom(['@prefix do: <http://linkedcontainers.org/vocab#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
+@prefix ex: <http://www.example.org/#> .
+@base <http://linkedcontainers.org/vocab> .
+
+ex:dockerfileX a do:Dockerfile;
+do:contains ( ex:insX ex:insX ex:insX ex:insX );\n
+'], HEADER).
 
 body(BODY) --> new_line_or_space, custom_code(CODE), {concat_atom([CODE], BODY)}.
 
@@ -59,8 +66,7 @@ docker_instruction(INSTRUCTION) --> stopsignal(INSTRUCTION).
 
 %===============================================================================
 % komentarz - OK
-% comment(LINE) --> "#", space, string(COMMENT), "\n", {concat_atom(["kom: ", COMMENT], LINE)}.
-comment(LINE) --> "#", space, string(COMMENT), "\n", {concat_atom([], LINE)}.
+comment(LINE) --> "#", space, string(COMMENT), "\n", {concat_atom(['# ', COMMENT], LINE)}.
 % comment(LINE) --> "#", "\n", {concat_atom(["kom?: "], LINE)}.
 
 %===============================================================================
@@ -83,7 +89,7 @@ if_from_tag_name(NAME) --> int(NAME).
 
 %===============================================================================
 % RUN
-run(LINE) --> "RUN", space, string(COMMAND), new_line, {concat_atom(["ex:insX fno:executes do:run; do:runCmd \"", COMMAND, "\""], LINE)}.
+run(LINE) --> "RUN", space, string(COMMAND), new_line, {concat_atom(["ex:insX fno:executes do:run; do:runCmd \"", COMMAND, "\" ."], LINE)}.
 
 %
 
@@ -135,7 +141,7 @@ env(LINE) --> "ENV", space, variable_name(KEY), space, "=", space, string(VALUE)
 %===============================================================================
 % ADD
 % TODO: opracować
-add(LINE) --> "ADD", space, string(VALUE), new_line, {concat_atom(["ex:insX fno:executes do:add; do:Instruction \"", VALUE, "\""], LINE)}.
+add(LINE) --> "ADD", space, string(VALUE), new_line, {concat_atom(["ex:insX fno:executes do:add; do:Instruction \"", VALUE, "\" ."], LINE)}.
 
 %===============================================================================
 % COPY
