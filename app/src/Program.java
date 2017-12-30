@@ -1,11 +1,13 @@
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Properties;
 
-import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.ListViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -15,7 +17,6 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
@@ -27,6 +28,8 @@ import org.eclipse.wb.swt.SWTResourceManager;
 public class Program {
 
 	protected Shell shlDockerfilesToRdf;
+	
+	protected Properties appProperties;
 
 	protected ArrayList<File> dockerFiles = new ArrayList<File>();
 	protected ArrayList<File> dockerFilesToProcess = new ArrayList<File>();
@@ -69,7 +72,10 @@ public class Program {
 	public void open() {
 		Display display = Display.getDefault();
 		
-		this.createDockerFiles();
+		// TODO: debug purposes only
+		createDockerFiles();
+		
+		initializeSettings();
 		
 		createContents();
 		
@@ -82,6 +88,38 @@ public class Program {
 			}
 		}
 	}
+	
+	protected void initializeSettings()
+	{
+	
+		File configFile = new File("app.settings");
+		
+		FileReader reader;
+		try
+		{
+			reader = new FileReader(configFile);
+			 
+			appProperties = new Properties();
+			 
+			// load the properties file:
+			appProperties.load(reader);
+			
+			String prolog_path = appProperties.getProperty("prolog_path", "E:\\Program Files\\swipl\\bin\\swipl.exe");
+			System.out.println(prolog_path);
+			
+		} catch (FileNotFoundException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+
+
+	}
 
 	/**
 	 * Create contents of the window.
@@ -90,8 +128,8 @@ public class Program {
 	    
 	    
 		shlDockerfilesToRdf = new Shell();
-		shlDockerfilesToRdf.setSize(800, 400);
-		shlDockerfilesToRdf.setText("Dockerfiles to RDF 0.17.12.28");
+		shlDockerfilesToRdf.setSize(800, 600);
+		shlDockerfilesToRdf.setText("Dockerfiles to RDF 0.17.12.31");
 		shlDockerfilesToRdf.setLayout(new GridLayout(2, false));
 		
 		Menu menu = new Menu(shlDockerfilesToRdf, SWT.BAR);
@@ -123,8 +161,9 @@ public class Program {
     			    	
         			    for (String dockerFile : dialog.getFileNames())
     					{
-    				    	dockerFiles.add(new File(dialog.getFilterPath() + File.separator + dockerFile));
-    				    	dockerFilesList.add(dockerFile);  
+        			    	String file = dialog.getFilterPath() + File.separator + dockerFile;
+    				    	dockerFiles.add(new File(file));
+    				    	dockerFilesList.add(file);  
     					}
     			    } else {
     			    	// todo: cancelled
@@ -189,6 +228,7 @@ public class Program {
 		mntmRdf.setMenu(menu_2);
 		
 		MenuItem mntmNewItem_1 = new MenuItem(menu_2, SWT.NONE);
+		mntmNewItem_1.setEnabled(false);
 		mntmNewItem_1.setText("Insert to db");
 		
 		MenuItem mntmProlog = new MenuItem(menu, SWT.CASCADE);
@@ -196,6 +236,33 @@ public class Program {
 		
 		Menu menu_3 = new Menu(mntmProlog);
 		mntmProlog.setMenu(menu_3);
+		
+		MenuItem mntmSettings = new MenuItem(menu_3, SWT.NONE);
+		mntmSettings.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+//				InputDialog dialog = new InputDialog(shlDockerfilesToRdf, "Prolog configuration", );
+				
+				AppSettingsDialog dialog = new AppSettingsDialog(shlDockerfilesToRdf);
+				dialog.open();
+				
+				File configFile = new File("app.settings");
+				FileWriter writer;
+				appProperties.setProperty("prolog_path", "dupa");
+				try
+				{
+					writer = new FileWriter(configFile);
+					appProperties.store(writer, "App settings");
+				} catch (IOException e1)
+				{
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				
+				
+			}
+		});
+		mntmSettings.setText("Configuration");
 		
 		MenuItem mntmVersion = new MenuItem(menu_3, SWT.NONE);
 		mntmVersion.addSelectionListener(
@@ -233,12 +300,18 @@ public class Program {
 			}
 		);
 		mntmVersion.setText("Version");
+//		mntmVersion.setAccelerator(SWT.MOD1 + 'V');
 		
 		MenuItem mntmHelp = new MenuItem(menu, SWT.CASCADE);
 		mntmHelp.setText("Help");
 		
 		Menu menu_4 = new Menu(mntmHelp);
 		mntmHelp.setMenu(menu_4);
+		
+		MenuItem mntmHelp_1 = new MenuItem(menu_4, SWT.NONE);
+		mntmHelp_1.setEnabled(false);
+		mntmHelp_1.setText("Help\tF1");
+		mntmHelp_1.setAccelerator(SWT.F1);
 		
 		Group grpDockerfiles = new Group(shlDockerfilesToRdf, SWT.NONE);
 		GridData gd_grpDockerfiles = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
@@ -279,9 +352,6 @@ public class Program {
 		txtWelcomeToSwiprolog.setFont(SWTResourceManager.getFont("Consolas", 9, SWT.NORMAL));
 		txtWelcomeToSwiprolog.setEditable(false);
 		txtWelcomeToSwiprolog.setBounds(10, 21, 753, 125);
-		
-		Group group_1 = new Group(shlDockerfilesToRdf, SWT.NONE);
-		new Label(shlDockerfilesToRdf, SWT.NONE);
 
 	}
 }
