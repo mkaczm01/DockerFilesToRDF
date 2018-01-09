@@ -4,10 +4,10 @@
 @base <http://linkedcontainers.org/vocab> .
 
 ex:dockerfileX a do:Dockerfile;
-do:contains ( ex:insX ex:insX ex:insX ex:insX );
+do:contains ( ex:ins2 ex:ins3 ex:ins4 ex:ins5 );
 
 # Dockeronto example
-ex:insX fno:executes do:from; do:fromValue <ubuntu:latest>;
-ex:insX fno:executes do:run; do:runCmd "apt-get update apt-get install -y python python-pip wget" .
-ex:insX fno:executes do:run; do:runCmd "pip install Flask" .
-ex:insX fno:executes do:add; do:Instruction "hello.py /home/hello.py" .
+ex:ins2 fno:executes . do:from do:fromValue <ubuntu:latest>;
+ex:ins3 fno:executes . do:run do:Instruction "apt-get update apt-get install -y python python-pip wget" .
+ex:ins4 fno:executes . do:run do:Instruction "pip install Flask" .
+ex:ins5 fno:executes . do:add do:Instruction "hello.py /home/hello.py" .

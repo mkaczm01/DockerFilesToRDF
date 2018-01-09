@@ -1,8 +1,15 @@
-FROM: python TAG: 3
-FROM: python
-ENV: PYTHONUNBUFFERED=1
-RUN: mkdir /code
-WORKDIR: /code
-ADD: requirements.txt /code/
-RUN: pip install -r requirements.txt
-ADD: . /code/
+@prefix do: <http://linkedcontainers.org/vocab#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
+@prefix ex: <http://www.example.org/#> .
+@base <http://linkedcontainers.org/vocab> .
+
+ex:dockerfileX a do:Dockerfile;
+do:contains ( ex:insX ex:insX ex:insX ex:insX );
+
+ex:ins1 fno:executes . do:from do:fromValue <python>;
+ex:ins2 fno:executes . do:env do:Instruction "PYTHONUNBUFFERED=1" .
+ex:ins3 fno:executes . do:run do:Instruction "mkdir /code" .
+ex:ins4 fno:executes . do:workdir do:Instruction "/code" .
+ex:ins5 fno:executes . do:add do:Instruction "requirements.txt /code/" .
+ex:ins6 fno:executes . do:run do:Instruction "pip install -r requirements.txt" .
+ex:ins7 fno:executes . do:add do:Instruction ". /code/" .

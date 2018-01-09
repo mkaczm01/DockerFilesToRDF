@@ -1,0 +1,16 @@
+@prefix do: <http://linkedcontainers.org/vocab#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
+@prefix ex: <http://www.example.org/#> .
+@base <http://linkedcontainers.org/vocab> .
+
+ex:dockerfileX a do:Dockerfile;
+do:contains ( ex:insX ex:insX ex:insX ex:insX );
+
+ex:ins1 fno:executes . do:from do:fromValue <microsoft/aspnetcore-build:lts>;
+ex:ins2 fno:executes . do:copy do:Instruction ". /app" .
+ex:ins3 fno:executes . do:workdir do:Instruction "/app" .
+ex:ins4 fno:executes . do:run do:Instruction "dotnet restore" .
+ex:ins5 fno:executes . do:run do:Instruction "dotnet build" .
+ex:ins6 fno:executes . do:expose do:Instruction "80/tcp" .
+ex:ins7 fno:executes . do:run do:Instruction "chmod +x ./entrypoint.sh" .
+ex:ins8 fno:executes . do:cmd do:Instruction "/bin/bash ./entrypoint.sh" .

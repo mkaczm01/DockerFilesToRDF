@@ -1,4 +1,0 @@
-kom: Copy everything else and build
-EXPOSE: 80 PROTOCOL: tcp
-USER: foo_bar
-ENV: PYTHONUNBUFFERED=1

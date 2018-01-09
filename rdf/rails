@@ -1,0 +1,16 @@
+@prefix do: <http://linkedcontainers.org/vocab#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
+@prefix ex: <http://www.example.org/#> .
+@base <http://linkedcontainers.org/vocab> .
+
+ex:dockerfileX a do:Dockerfile;
+do:contains ( ex:insX ex:insX ex:insX ex:insX );
+
+ex:ins1 fno:executes . do:from do:fromValue <ruby:2.3.3>;
+ex:ins2 fno:executes . do:run do:Instruction "apt-get update -qq && apt-get install -y build-essential libpq-dev nodejs" .
+ex:ins3 fno:executes . do:run do:Instruction "mkdir /myapp" .
+ex:ins4 fno:executes . do:workdir do:Instruction "/myapp" .
+ex:ins5 fno:executes . do:copy do:Instruction "Gemfile /myapp/Gemfile" .
+ex:ins6 fno:executes . do:copy do:Instruction "Gemfile.lock /myapp/Gemfile.lock" .
+ex:ins7 fno:executes . do:run do:Instruction "bundle install" .
+ex:ins8 fno:executes . do:copy do:Instruction ". /myapp" .

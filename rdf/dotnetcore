@@ -1,0 +1,21 @@
+@prefix do: <http://linkedcontainers.org/vocab#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
+@prefix ex: <http://www.example.org/#> .
+@base <http://linkedcontainers.org/vocab> .
+
+ex:dockerfileX a do:Dockerfile;
+do:contains ( ex:insX ex:insX ex:insX ex:insX );
+
+ex:ins1 fno:executes . do:from do:fromValue <microsoft/aspnetcore-build:2.0 AS build-env>;
+ex:ins2 fno:executes . do:workdir do:Instruction "/app" .
+# Copy csproj and restore as distinct layers
+ex:ins4 fno:executes . do:copy do:Instruction "*.csproj ./" .
+ex:ins5 fno:executes . do:run do:Instruction "dotnet restore" .
+# Copy everything else and build
+ex:ins7 fno:executes . do:copy do:Instruction ". ./" .
+ex:ins8 fno:executes . do:run do:Instruction "dotnet publish -c Release -o out" .
+# Build runtime image
+ex:ins10 fno:executes . do:from do:fromValue <microsoft/aspnetcore:2.0>;
+ex:ins11 fno:executes . do:workdir do:Instruction "/app" .
+ex:ins12 fno:executes . do:copy do:Instruction "--from=build-env /app/out" .
+# ENTRYPOINT dotnet aspnetapp.dll

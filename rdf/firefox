@@ -1,0 +1,20 @@
+@prefix do: <http://linkedcontainers.org/vocab#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
+@prefix ex: <http://www.example.org/#> .
+@base <http://linkedcontainers.org/vocab> .
+
+ex:dockerfileX a do:Dockerfile;
+do:contains ( ex:insX ex:insX ex:insX ex:insX );
+
+# Firefox over VNC
+# VERSION 0.3
+ex:ins3 fno:executes . do:from do:fromValue <ubuntu>;
+# Install vnc, xvfb in order to create a 'fake' display and firefox
+ex:ins5 fno:executes . do:run do:Instruction "apt-get update && apt-get install -y x11vnc xvfb firefox" .
+ex:ins6 fno:executes . do:run do:Instruction "mkdir ~/.vnc" .
+# Setup a password
+ex:ins8 fno:executes . do:run do:Instruction "x11vnc -storepasswd 1234 ~/.vnc/passwd" .
+# Autostart firefox (might not be the best way, but it does the trick)
+ex:ins10 fno:executes . do:run do:Instruction "bash -c 'echo firefox >> /.bashrc'" .
+ex:ins11 fno:executes . do:expose do:Instruction "5900/tcp" .
+ex:ins12 fno:executes . do:cmd do:Instruction "x11vnc -forever -usepw -create" .

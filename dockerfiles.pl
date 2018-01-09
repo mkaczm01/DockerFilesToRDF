@@ -1,12 +1,32 @@
 %===============================================================================
 % Proedura startowa
-% s() :- start("apt-cacher-ng").
-% s() :- start("aspnet-mssql-compose").
-% s() :- start("django").
-% s() :- start("dotnetcore").
-s() :- start("dockeronto").
+% s() :- start_local("apt-cacher-ng").
+% s() :- start_local("aspnet-mssql-compose").
+% s() :- start_local("django").
+% s() :- start_local("dotnetcore").
+s() :- start_local("dockeronto").
 
-start(FILE) :-
+/*
+swipl -s file.pl -g "mygoal(3,foo)." -t halt.
+
+swipl.exe -s E:\DockerFilesToRDF\DockerFilesToRDF\dockerfiles.pl -g "main()." -q -t halt -- E:\DockerFilesToRDF\DockerFilesToRDF\sources\dockeronto -- E:\DockerFilesToRDF\DockerFilesToRDF\rdf\dockeronto
+*/
+
+main :-
+  current_prolog_flag(argv, ARGS),
+	nth1(1, ARGS, INPUT),
+	nth1(2, ARGS, OUTPUT),
+	start(INPUT, OUTPUT).
+
+start(FILE_INPUT, FILE_OUTPUT) :-
+	read_file_to_codes(FILE_INPUT, FILE_CONTENT, []),
+	headers(HEADERS),
+	body(BODY, FILE_CONTENT, []),
+	concat_atom([HEADERS, BODY], OUTPUT),
+	saveFile(FILE_OUTPUT, OUTPUT),
+	write(OUTPUT), !.
+
+start_local(FILE) :-
 	concat_atom(["./sources/", FILE], INPUT_FILE),
 	read_file_to_codes(INPUT_FILE, FILE_CONTENT, []),
 	headers(HEADERS),
@@ -41,43 +61,42 @@ do:contains ( ex:insX ex:insX ex:insX ex:insX );\n
 
 body(BODY) --> new_line_or_space, custom_code(CODE), {concat_atom([CODE], BODY)}.
 
-custom_code(CODE) --> space, docker_instructions(CODE_1), new_line, {custom_code(CODE_2), { concat_atom([CODE_1, "\n", CODE_2], CODE) }.
-custom_code(CODE) --> space, docker_instructions(CODE).
+% custom_code(CODE) --> space, docker_instructions(CODE_1), new_line, {custom_code(CODE_2), { concat_atom([CODE_1, "\n", CODE_2], CODE) }.
+custom_code(CODE) --> space, docker_instructions(CODE, 1).
 custom_code('') --> "".
 
 %===============================================================================
 %
+docker_instructions(INSTRUCTIONS, ID) --> space, docker_instruction(I, ID), new_line, {NEW_ID is ID+1}, docker_instructions(REST, NEW_ID), {concat_atom([I, '\n', REST], INSTRUCTIONS)}.
+docker_instructions(INSTRUCTION, ID) --> space, docker_instruction(INSTRUCTION, ID), new_line.
 
-docker_instructions(INSTRUCTIONS) --> space, docker_instruction(I), new_line, docker_instructions(REST), {concat_atom([I, '\n', REST], INSTRUCTIONS)}.
-docker_instructions(INSTRUCTION) --> space, docker_instruction(INSTRUCTION), new_line.
-
-docker_instruction(INSTRUCTION) --> comment(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> from(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> run(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> cmd(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> label(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> expose(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> env(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> add(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> volume(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> user(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> workdir(INSTRUCTION).
-docker_instruction(INSTRUCTION) --> stopsignal(INSTRUCTION).
+docker_instruction(INSTRUCTION, _) --> comment(INSTRUCTION).
+docker_instruction(INSTRUCTION, ID) --> from(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> run(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> cmd(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> label(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> expose(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> env(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> add(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> copy(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> volume(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> user(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> workdir(INSTRUCTION, ID).
+docker_instruction(INSTRUCTION, ID) --> stopsignal(INSTRUCTION, ID).
 
 %===============================================================================
-% komentarz - OK
+% # comment - OK
 comment(LINE) --> "#", space, string(COMMENT), "\n", {concat_atom(['# ', COMMENT], LINE)}.
-% comment(LINE) --> "#", "\n", {concat_atom(["kom?: "], LINE)}.
 
 %===============================================================================
 % FROM
 % FROM <image> [AS <name>] - OK
 % FROM <image>[:<tag>] [AS <name>] - OK
-% FROM <image>[@<digest>] [AS <name>]
+% FROM <image>[@<digest>] [AS <name>] - NOK
+% FROM microsoft/aspnetcore-build:lts
+from(LINE, ID) --> "FROM", space, string(IMAGE), if_from_tag(TAG), if_from_as(AS), new_line, {concat_atom(["ex:ins", ID, " fno:executes . do:from do:fromValue <", IMAGE, TAG, AS, ">;"], LINE)}.
 
-from(LINE) --> "FROM", space, variable_name(IMAGE), if_from_tag(TAG), if_from_as(AS), new_line, {concat_atom(["ex:insX fno:executes do:from; do:fromValue <", IMAGE, TAG, ">;", AS], LINE)}.
-
-if_from_as(STRING) --> space, "AS", space, variable_name(NAME), {concat_atom(['AS: ', NAME], STRING)}.
+if_from_as(STRING) --> " ", "AS", " ", string(NAME), {concat_atom(['AS ', NAME], STRING)}.
 if_from_as("") --> "".
 
 if_from_tag(STRING) --> ":", if_from_tag_name(TAG), {concat_atom([':', TAG], STRING)}.
@@ -89,18 +108,13 @@ if_from_tag_name(NAME) --> int(NAME).
 
 %===============================================================================
 % RUN
-run(LINE) --> "RUN", space, string(COMMAND), new_line, {concat_atom(["ex:insX fno:executes do:run; do:runCmd \"", COMMAND, "\" ."], LINE)}.
-
-%
-
-
-% TODO: opracować
-% RUN ["dotnet", "restore"]
-% run(LINE) --> "RUN", space, "[", string(COMMAND), "]" new_line, {concat_atom(["RUN: ", COMMAND], LINE)}.
+% RUN <command> - OK
+% RUN ["executable", "param1", "param2"] - NOK
+run(LINE, ID) --> "RUN", space, string(COMMAND), new_line, {concat_atom(["ex:ins", ID, " fno:executes . do:run do:Instruction \"", COMMAND, "\" ."], LINE)}.
 
 %===============================================================================
 % CMD
-cmd(LINE) --> "CMD", space, string(COMMAND), new_line, {concat_atom(["CMD: ", COMMAND], LINE)}.
+cmd(LINE, ID) --> "CMD", space, string(COMMAND), new_line, {concat_atom(["ex:ins", ID," fno:executes . do:cmd do:Instruction \"", COMMAND, "\" ."], LINE)}.
 
 % TODO: opracować
 % CMD ["/usr/lib/postgresql/9.3/bin/postgres", "-D", "/var/lib/postgresql/9.3/main", "-c", "config_file=/etc/postgresql/9.3/main/postgresql.conf"]
@@ -108,7 +122,7 @@ cmd(LINE) --> "CMD", space, string(COMMAND), new_line, {concat_atom(["CMD: ", CO
 %===============================================================================
 % LABEL
 % LABEL <key>=<value> <key>=<value> <key>=<value> ...
-label(LINE) --> "LABEL", space, key_value_pairs(PAIR), new_line, {concat_atom(["LABEL: ", PAIR], LINE)}.
+label(LINE, ID) --> "LABEL", space, key_value_pairs(PAIR), new_line, {concat_atom(["ex:ins", ID, " fno:executes . do:label do:Instruction \"", PAIR, "\" ."], LINE)}.
 
 key_value_pairs(PAIRS) --> key_value_pair(PAIR), space, key_value_pairs(REST), {concat_atom([PAIR,' ', REST], PAIRS)}.
 key_value_pairs(PAIRS) --> key_value_pair(PAIRS).
@@ -119,56 +133,61 @@ key_value_pair(PAIR) --> string(KEY), "=", string(VALUE), { concat_atom([KEY, '=
 
 if_qoute_mark(STRING) --> "\"", {concat_atom(['"'], STRING)}.
 if_qoute_mark("") --> "".
-
-
-
 %===============================================================================
 % EXPOSE
 % EXPOSE 80 - OK
 % EXPOSE 80/tcp - OK
-expose(LINE) --> "EXPOSE", space, int(PORT), if_expose_protocol(PROTOCOL), new_line, {concat_atom(["EXPOSE: ", PORT, PROTOCOL], LINE)}.
+expose(LINE, ID) --> "EXPOSE", space, int(PORT), if_expose_protocol(PROTOCOL), new_line, {concat_atom(["ex:ins", ID, " fno:executes . do:expose do:Instruction \"", PORT, PROTOCOL, "\" ."], LINE)}.
 
-if_expose_protocol(STRING) --> "/", variable_name(PROTOCOL), {concat_atom([' PROTOCOL: ', PROTOCOL], STRING)}.
+if_expose_protocol(STRING) --> "/", variable_name(PROTOCOL), {concat_atom(['/', PROTOCOL], STRING)}.
 if_expose_protocol("") --> "".
 
 %===============================================================================
 % ENV
 % ENV PYTHONUNBUFFERED 1 - NOK
 % ENV PYTHONUNBUFFERED=1 - OK
-env(LINE) --> "ENV", space, variable_name(KEY), space, "=", space, string(VALUE), new_line, {concat_atom(["ENV: ", KEY, "=", VALUE], LINE)}.
+env(LINE, ID) --> "ENV", space, variable_name(KEY), assign(A), string(VALUE), new_line, {concat_atom(["ex:ins", ID, " fno:executes . do:env do:Instruction \"", KEY, "=", VALUE, "\" ."], LINE)}.
+assign(A) --> space, "=", space, {concat_atom([''], A)}.
+assign(A) --> " ", {concat_atom([''], A)}.
 % TODO: opracowac przypisanie ze spacja
 
 %===============================================================================
 % ADD
 % TODO: opracować
-add(LINE) --> "ADD", space, string(VALUE), new_line, {concat_atom(["ex:insX fno:executes do:add; do:Instruction \"", VALUE, "\" ."], LINE)}.
+add(LINE, ID) --> "ADD", space, string(VALUE), new_line, {concat_atom(["ex:ins", ID, " fno:executes . do:add do:Instruction \"", VALUE, "\" ."], LINE)}.
 
 %===============================================================================
 % COPY
-% TODO: opracować
+% COPY <src> <dest> - OK
+copy(LINE, ID) --> "COPY", space, string(SRC), " ", string(DEST), {concat_atom(["ex:ins", ID, " fno:executes . do:copy do:Instruction \"", SRC, " ", DEST, "\" ."], LINE) }.
+
 
 %===============================================================================
 % ENTRYPOINT
-% TODO: opracować
+% ENTRYPOINT command param1 - OK
+entrypoint(LINE, ID) --> "ENTRYPOINT", space, string(COMMAND), " ", string(PARAM), {concat_atom(["ex:ins", ID, " fno:executes . do:entrypoint do:Instruction \"", COMMAND, " ", PARAM, "\" ."], LINE) }.
+
 
 %===============================================================================
 % VOLUME
 % VOLUME ["/myvol"]
 % VOLUME /myvol
-volume(LINE) --> "VOLUME", space, "[\"", string(DIRECTORY), "\"]", new_line, {concat_atom(["VOLUME: ", DIRECTORY], LINE)}.
-volume(LINE) --> "VOLUME", space, string(DIRECTORY), new_line, {concat_atom(["VOLUME: ", DIRECTORY], LINE)}.
+volume(LINE, ID) --> "VOLUME", space, "[\"", string(DIRECTORY), "\"]", new_line, {concat_atom(["ex:ins", ID," fno:executes . do:volume do:Instruction \"", DIRECTORY, "\" ."], LINE)}.
+volume(LINE, ID) --> "VOLUME", space, string(DIRECTORY), new_line, {concat_atom(["ex:ins", ID," fno:executes . do:volume do:Instruction \"", DIRECTORY, "\" ."], LINE)}.
 
 %===============================================================================
 % USER
 % USER <user>[:<group>]
 % USER <UID>[:<GID>]
-user(LINE) --> "USER", space, variable_name(USER), new_line, {concat_atom(["USER: ", USER], LINE)}.
+% USER <user> - OK
+user(LINE, ID) --> "USER", space, variable_name(USER), new_line, {concat_atom(["ex:ins", ID, " fno:executes . do:user do:Instruction \"", USER, "\" ."], LINE)}.
 % TODO: dodanie grupy?
 
 %===============================================================================
 % WORKDIR
 % WORKDIR /path/to/workdir - OK
-workdir(LINE) --> "WORKDIR", space, string(PATH), new_line, {concat_atom(["WORKDIR: ", PATH], LINE)}.
+workdir(LINE, ID) --> "WORKDIR", space, string(PATH), new_line, {concat_atom(["ex:ins", ID, " fno:executes . do:workdir do:Instruction \"", PATH, "\" ."], LINE)}.
+
 
 %===============================================================================
 % ARG
@@ -181,7 +200,7 @@ workdir(LINE) --> "WORKDIR", space, string(PATH), new_line, {concat_atom(["WORKD
 %===============================================================================
 % STOPSIGNAL
 % STOPSIGNAL signal - OK
-stopsignal(LINE) --> "STOPSIGNAL", space, string(SIGNAL), new_line, {concat_atom(["STOPSIGNAL: ", SIGNAL], LINE)}.
+stopsignal(LINE, ID) --> "STOPSIGNAL", space, string(SIGNAL), new_line, {concat_atom(["STOPSIGNAL: ", SIGNAL], LINE)}.
 
 %===============================================================================
 % HEALTHCHECK

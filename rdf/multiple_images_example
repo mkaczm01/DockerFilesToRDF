@@ -1,0 +1,18 @@
+@prefix do: <http://linkedcontainers.org/vocab#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
+@prefix ex: <http://www.example.org/#> .
+@base <http://linkedcontainers.org/vocab> .
+
+ex:dockerfileX a do:Dockerfile;
+do:contains ( ex:insX ex:insX ex:insX ex:insX );
+
+# Multiple images example
+# VERSION 0.1
+ex:ins3 fno:executes . do:from do:fromValue <ubuntu>;
+ex:ins4 fno:executes . do:run do:Instruction "echo foo > bar" .
+# Will output something like ===> 907ad6c2736f
+ex:ins6 fno:executes . do:from do:fromValue <ubuntu>;
+ex:ins7 fno:executes . do:run do:Instruction "echo moo > oink" .
+# Will output something like ===> 695d7793cbe4
+# You'll now have two images, 907ad6c2736f with /bar, and 695d7793cbe4 with
+# /oink.
