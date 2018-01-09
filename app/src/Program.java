@@ -17,6 +17,7 @@ import org.eclipse.rdf4j.query.MalformedQueryException;
 import org.eclipse.rdf4j.query.QueryEvaluationException;
 import org.eclipse.rdf4j.query.TupleQuery;
 import org.eclipse.rdf4j.query.TupleQueryResult;
+import org.eclipse.rdf4j.query.parser.sparql.ast.ParseException;
 import org.eclipse.rdf4j.repository.Repository;
 import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.eclipse.rdf4j.repository.RepositoryResult;
@@ -72,6 +73,7 @@ public class Program
 	private Text textSparql;
 
 	protected Repository RDFDB;
+	private Text textSparqlOutput;
 
 	/**
 	 * Launch the application.
@@ -174,8 +176,8 @@ public class Program
 	{
 
 		shlDockerfilesToRdf = new Shell();
-		shlDockerfilesToRdf.setSize(800, 600);
-		shlDockerfilesToRdf.setText("Dockerfiles to RDF 0.18.01.02");
+		shlDockerfilesToRdf.setSize(800, 620);
+		shlDockerfilesToRdf.setText("Dockerfiles to RDF 0.18.01.09");
 		shlDockerfilesToRdf.setLayout(new GridLayout(2, false));
 
 		Menu menu = new Menu(shlDockerfilesToRdf, SWT.BAR);
@@ -333,6 +335,8 @@ public class Program
 				textSparql.setText("");
 				textSparql.setEnabled(false);
 				btnButtonRunQuery.setEnabled(false);
+				
+				textSparqlOutput.setText("");
 			}
 		});
 		mntmClear.setText("Clear");
@@ -502,21 +506,21 @@ public class Program
 		grpProlog.setText("Prolog output:");
 
 		txtWelcomeToSwiprolog = new Text(grpProlog, SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL | SWT.CANCEL);
-		txtWelcomeToSwiprolog.setFont(SWTResourceManager.getFont("Consolas", 9, SWT.NORMAL));
+		txtWelcomeToSwiprolog.setFont(SWTResourceManager.getFont("Consolas", 8, SWT.NORMAL));
 		txtWelcomeToSwiprolog.setEditable(false);
-		txtWelcomeToSwiprolog.setBounds(10, 21, 753, 125);
+		txtWelcomeToSwiprolog.setBounds(10, 21, 753, 100);
 
 		Group grpSparql = new Group(shlDockerfilesToRdf, SWT.NONE);
-		GridData gd_grpSparql = new GridData(SWT.CENTER, SWT.CENTER, false, false, 0, 1);
+		GridData gd_grpSparql = new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1);
 		gd_grpSparql.heightHint = 130;
-		gd_grpSparql.widthHint = 374;
+		gd_grpSparql.widthHint = 763;
 		grpSparql.setLayoutData(gd_grpSparql);
 		grpSparql.setText("SPARQL:");
 
 		textSparql = new Text(grpSparql, SWT.BORDER | SWT.V_SCROLL);
 		textSparql.setText("PREFIX ex: <http://example.org/>\r\nPREFIX do: <http://linkedcontainers.org/vocab#>\r\nSELECT ?s, ?n\r\nWHERE {\r\n}");
 		textSparql.setEnabled(false);
-		textSparql.setBounds(10, 20, 367, 90);
+		textSparql.setBounds(10, 20, 749, 90);
 
 		btnButtonRunQuery = new Button(grpSparql, SWT.NONE);
 		btnButtonRunQuery.addSelectionListener(new SelectionAdapter()
@@ -531,11 +535,13 @@ public class Program
 				{
 
 
-				    TupleQuery query = repositoryConnection.prepareTupleQuery(textSparql.getText());
+				    
 				    // A QueryResult is also an AutoCloseable resource, so make sure it gets
 				    // closed when done.
-				    try (TupleQueryResult result = query.evaluate()) 
+				    try 
 				    {
+				    	TupleQuery query = repositoryConnection.prepareTupleQuery(textSparql.getText());
+				    	TupleQueryResult result = query.evaluate();
 				    	if (!result.hasNext())
 				    	{
 				    		 System.out.println("SPARQL: No results!");
@@ -545,16 +551,16 @@ public class Program
 						while (result.hasNext()) 
 						{
 						    BindingSet solution = result.next();
-
-						    System.out.println("Tuple: ?s = " + solution.getValue("s"));
-						    System.out.println("Tuple: ?n = " + solution.getValue("n"));
+						    solution.getBindingNames();
+						    solution.iterator();
+						    System.out.println("Foo");
 						}
 				    } 
 				    catch (QueryEvaluationException e1)
 				    {
-						System.out.println("SPARQL query error!");
-						System.out.println("CAUSE: " + e1.getCause());
-						System.out.println("MESSAGE: " + e1.getMessage());
+				    	textSparqlOutput.append("SPARQL query error!\n");
+				    	textSparqlOutput.append("CAUSE: " + e1.getCause() + "\n");
+				    	textSparqlOutput.append("MESSAGE: " + e1.getMessage() + "\n");
 						e1.getStackTrace();
 				    }
 				    catch (MalformedQueryException e1)
@@ -562,6 +568,11 @@ public class Program
 						MessageBox dialog = new MessageBox(shlDockerfilesToRdf, SWT.ICON_ERROR | SWT.OK);
 						dialog.setText("SPARQL query error");
 						dialog.setMessage(e1.getMessage());
+						
+						textSparqlOutput.append("SPARQL query error!\n");
+						textSparqlOutput.append(e1.getMessage() + "\n");
+						textSparqlOutput.append("=====\n");
+						
 						dialog.open();
 				    }
 				}
@@ -570,7 +581,17 @@ public class Program
 		btnButtonRunQuery.setEnabled(false);
 		btnButtonRunQuery.setBounds(10, 114, 75, 25);
 		btnButtonRunQuery.setText("Run query");
-		new Label(shlDockerfilesToRdf, SWT.NONE);
+		
+		Group grpSparqlOutput = new Group(shlDockerfilesToRdf, SWT.NONE);
+		GridData gd_grpSparqlOutput = new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1);
+		gd_grpSparqlOutput.heightHint = 105;
+		gd_grpSparqlOutput.widthHint = 767;
+		grpSparqlOutput.setLayoutData(gd_grpSparqlOutput);
+		grpSparqlOutput.setText("SPARQL output:");
+		
+		textSparqlOutput = new Text(grpSparqlOutput, SWT.BORDER | SWT.READ_ONLY | SWT.H_SCROLL | SWT.V_SCROLL | SWT.CANCEL);
+		textSparqlOutput.setFont(SWTResourceManager.getFont("Consolas", 8, SWT.NORMAL));
+		textSparqlOutput.setBounds(10, 21, 753, 90);
 
 		checkIfPrologPathExist();
 	}
