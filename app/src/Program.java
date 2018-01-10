@@ -177,11 +177,59 @@ public class Program
 
 		shlDockerfilesToRdf = new Shell();
 		shlDockerfilesToRdf.setSize(800, 620);
-		shlDockerfilesToRdf.setText("Dockerfiles to RDF 0.18.01.09");
+		shlDockerfilesToRdf.setText("Dockerfiles to RDF 0.18.01.10");
 		shlDockerfilesToRdf.setLayout(new GridLayout(2, false));
 
 		Menu menu = new Menu(shlDockerfilesToRdf, SWT.BAR);
 		shlDockerfilesToRdf.setMenuBar(menu);
+		
+		MenuItem mntmProgram = new MenuItem(menu, SWT.CASCADE);
+		mntmProgram.setText("Program");
+		
+		Menu menu_5 = new Menu(mntmProgram);
+		mntmProgram.setMenu(menu_5);
+				
+						MenuItem mntmClear = new MenuItem(menu_5, SWT.NONE);
+						mntmClear.addSelectionListener(new SelectionAdapter()
+						{
+							/**
+							 * CLEAR clicked
+							 */
+							@Override
+							public void widgetSelected(SelectionEvent e)
+							{
+								dockerFiles.clear();
+								dockerFilesList.removeAll();
+
+								dockerFilesToProcess.clear();
+								RDFlist.removeAll();
+
+								txtWelcomeToSwiprolog.setText("");
+								
+								textSparql.setText("");
+								textSparql.setEnabled(false);
+								btnButtonRunQuery.setEnabled(false);
+								
+								textSparqlOutput.setText("");
+							}
+						});
+						mntmClear.setText("Clear");
+				
+				new MenuItem(menu_5, SWT.SEPARATOR);
+				
+				MenuItem mntmExit = new MenuItem(menu_5, SWT.NONE);
+				mntmExit.addSelectionListener(new SelectionAdapter() 
+				{
+					/**
+					 * EXIT clicked
+					 */
+					@Override
+					public void widgetSelected(SelectionEvent e) 
+					{
+						shlDockerfilesToRdf.close();
+					}
+				});
+				mntmExit.setText("Exit");
 
 		MenuItem mntmDockerfiles = new MenuItem(menu, SWT.CASCADE);
 		mntmDockerfiles.setText("Dockerfiles");
@@ -259,7 +307,7 @@ public class Program
 					// TODO: remove duplicates
 					dockerFilesToProcess.forEach(file -> RDFlist.add(file.getAbsolutePath()));
 					
-					AppLoadingDialog loadingDialog = new AppLoadingDialog(Display.getCurrent().getActiveShell());
+//					AppLoadingDialog loadingDialog = new AppLoadingDialog(Display.getCurrent().getActiveShell());
 //					loadingDialog.open();
 //					loadingDialog.
 				
@@ -312,35 +360,6 @@ public class Program
 		mntmNewItem.setText("Process\tCtrl+P");
 		mntmNewItem.setAccelerator(SWT.MOD1 + 'P');
 
-		MenuItem mntmSeparatordockerfiles = new MenuItem(menu_1, SWT.SEPARATOR);
-		mntmSeparatordockerfiles.setText("separator-dockerfiles");
-
-		MenuItem mntmClear = new MenuItem(menu_1, SWT.NONE);
-		mntmClear.addSelectionListener(new SelectionAdapter()
-		{
-			/**
-			 * CLEAR clicked
-			 */
-			@Override
-			public void widgetSelected(SelectionEvent e)
-			{
-				dockerFiles.clear();
-				dockerFilesList.removeAll();
-
-				dockerFilesToProcess.clear();
-				RDFlist.removeAll();
-
-				txtWelcomeToSwiprolog.setText("");
-				
-				textSparql.setText("");
-				textSparql.setEnabled(false);
-				btnButtonRunQuery.setEnabled(false);
-				
-				textSparqlOutput.setText("");
-			}
-		});
-		mntmClear.setText("Clear");
-
 		MenuItem mntmRdf = new MenuItem(menu, SWT.CASCADE);
 		mntmRdf.setText("RDF");
 
@@ -376,8 +395,8 @@ public class Program
 					{
 						Reader reader = new FileReader(rdfFilesToProcess.get(i));
 						
-						//Model model = Rio.parse(reader, "", RDFFormat.TURTLE);
-						//Rio.write(model, System.out, RDFFormat.RDFXML);
+						Model model = Rio.parse(reader, "", RDFFormat.TURTLE);
+						Rio.write(model, System.out, RDFFormat.RDFXML);
 						
 						repositoryConnection.add(reader, "", RDFFormat.TURTLE);
 
@@ -518,7 +537,7 @@ public class Program
 		grpSparql.setText("SPARQL:");
 
 		textSparql = new Text(grpSparql, SWT.BORDER | SWT.V_SCROLL);
-		textSparql.setText("PREFIX ex: <http://example.org/>\r\nPREFIX do: <http://linkedcontainers.org/vocab#>\r\nSELECT ?s, ?n\r\nWHERE {\r\n}");
+		textSparql.setText("PREFIX ex: <http://example.org/>\r\nPREFIX do: <http://linkedcontainers.org/vocab#>\r\nSELECT *\r\nWHERE {\r\n\t?s ?p ?o\r\n}");
 		textSparql.setEnabled(false);
 		textSparql.setBounds(10, 20, 749, 90);
 
@@ -545,6 +564,8 @@ public class Program
 				    	if (!result.hasNext())
 				    	{
 				    		 System.out.println("SPARQL: No results!");
+				    		 textSparqlOutput.append("SPARQL: No results!\n");
+				    		 textSparqlOutput.append("=====\n");
 				    	}
 				    	
 						// we just iterate over all solutions in the result...
